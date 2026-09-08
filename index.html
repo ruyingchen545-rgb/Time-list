@@ -9,17 +9,28 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Arial,sans-serif}
 main{max-width:720px;margin:auto;padding:28px 18px 100px}
-.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:30px}
+.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:22px}
 .kicker{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
 h1{font-size:34px;letter-spacing:-1px;margin:0}
-.date{font-size:13px;color:var(--muted)}
+.date-small{font-size:13px;color:var(--muted)}
+
+.navigator{display:grid;grid-template-columns:44px 1fr 44px auto;gap:8px;align-items:center;margin-bottom:22px}
+.navigator button,.navigator input{height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;color:#111}
+.navigator button{font-size:18px}
+.navigator input{padding:0 10px;text-align:center}
+#todayBtn{padding:0 13px;font-size:13px;font-weight:600}
+
 .form{display:grid;grid-template-columns:1fr 120px 76px;gap:9px;margin-bottom:30px}
 input,button{font:inherit}
 input{height:49px;border:1px solid var(--line);border-radius:12px;padding:0 13px;background:#fff;color:#111;outline:none}
 input:focus{border-color:#aaa}
 #add{height:49px;border:0;border-radius:12px;background:#111;color:#fff;font-weight:650}
-#add:active{transform:scale(.98)}
-.label{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:11px}
+#add:active,.navigator button:active{transform:scale(.98)}
+
+.label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.label{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.selected-label{font-size:12px;color:var(--muted)}
+
 #list{border-top:1px solid var(--line)}
 .item{display:grid;grid-template-columns:66px 1fr 38px;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}
 .item-time{font-size:14px;color:#444;font-variant-numeric:tabular-nums}
@@ -29,9 +40,13 @@ input:focus{border-color:#aaa}
 .bottom{display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:#999;font-size:12px}
 #clear{border:0;background:transparent;color:#777;padding:8px 0}
 .notice{display:none;margin:-14px 0 22px;font-size:12px;color:#777}
+
 @media(max-width:560px){
  main{padding:22px 16px 90px}
  h1{font-size:31px}
+ .top{margin-bottom:18px}
+ .navigator{grid-template-columns:42px 1fr 42px;gap:7px}
+ #todayBtn{grid-column:1/-1}
  .form{grid-template-columns:1fr 110px}
  #add{grid-column:1/-1}
 }
@@ -44,7 +59,14 @@ input:focus{border-color:#aaa}
       <div class="kicker">Daily Log</div>
       <h1>Time List</h1>
     </div>
-    <div class="date" id="date"></div>
+    <div class="date-small" id="todayDisplay"></div>
+  </div>
+
+  <div class="navigator">
+    <button id="prevDay" type="button" aria-label="Previous day">←</button>
+    <input id="datePicker" type="date">
+    <button id="nextDay" type="button" aria-label="Next day">→</button>
+    <button id="todayBtn" type="button">Today</button>
   </div>
 
   <div class="form">
@@ -54,12 +76,17 @@ input:focus{border-color:#aaa}
   </div>
 
   <div id="notice" class="notice"></div>
-  <div class="label">Today</div>
+
+  <div class="label-row">
+    <div class="label">Time List</div>
+    <div class="selected-label" id="selectedLabel"></div>
+  </div>
+
   <div id="list"></div>
 
   <div class="bottom">
     <span id="count">0 items</span>
-    <button id="clear" type="button">Clear today</button>
+    <button id="clear" type="button">Clear this day</button>
   </div>
 </main>
 
@@ -71,24 +98,51 @@ input:focus{border-color:#aaa}
   var list = document.getElementById('list');
   var count = document.getElementById('count');
   var clearBtn = document.getElementById('clear');
-  var dateEl = document.getElementById('date');
+  var todayDisplay = document.getElementById('todayDisplay');
   var notice = document.getElementById('notice');
+
+  var datePicker = document.getElementById('datePicker');
+  var prevDay = document.getElementById('prevDay');
+  var nextDay = document.getElementById('nextDay');
+  var todayBtn = document.getElementById('todayBtn');
+  var selectedLabel = document.getElementById('selectedLabel');
+
+  /* 保持原来的 storage key，这样你之前记录的数据不会丢 */
   var STORAGE_KEY = 'timelist-simple-v2';
   var memoryData = {};
   var storageOK = true;
 
   function pad(n){ return n < 10 ? '0' + n : '' + n; }
-  function dayKey(){
-    var d = new Date();
+
+  function formatDateKey(d){
     return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
   }
+
+  function todayKey(){
+    return formatDateKey(new Date());
+  }
+
+  function dateFromKey(key){
+    var parts = key.split('-');
+    return new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+  }
+
+  function displayDate(key){
+    var d = dateFromKey(key);
+    var weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return (d.getMonth()+1) + '/' + d.getDate() + ' · ' + weekdays[d.getDay()];
+  }
+
   function currentTime(){
     var d = new Date();
     return pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
+
   function makeId(){
     return String(Date.now()) + '-' + String(Math.floor(Math.random()*1000000));
   }
+
+  var selectedDate = todayKey();
 
   function loadAll(){
     if(!storageOK) return memoryData;
@@ -98,7 +152,7 @@ input:focus{border-color:#aaa}
     }catch(e){
       storageOK = false;
       notice.style.display = 'block';
-      notice.textContent = 'This preview cannot save permanently, but adding entries still works.';
+      notice.textContent = 'This browser cannot save permanently, but entries still work during this session.';
       return memoryData;
     }
   }
@@ -114,36 +168,53 @@ input:focus{border-color:#aaa}
       storageOK = false;
       memoryData = data;
       notice.style.display = 'block';
-      notice.textContent = 'This preview cannot save permanently, but adding entries still works.';
+      notice.textContent = 'This browser cannot save permanently, but entries still work during this session.';
     }
   }
 
   function getItems(){
     var all = loadAll();
-    return all[dayKey()] || [];
+    return all[selectedDate] || [];
   }
 
   function setItems(items){
     var all = loadAll();
-    all[dayKey()] = items;
+    all[selectedDate] = items;
     saveAll(all);
+  }
+
+  function setSelectedDate(key){
+    selectedDate = key;
+    datePicker.value = key;
+    selectedLabel.textContent = key === todayKey() ? 'Today · ' + displayDate(key) : displayDate(key);
+    render();
+  }
+
+  function shiftDate(days){
+    var d = dateFromKey(selectedDate);
+    d.setDate(d.getDate() + days);
+    setSelectedDate(formatDateKey(d));
   }
 
   function render(){
     var items = getItems().slice();
+
     items.sort(function(a,b){
       if(a.time < b.time) return -1;
       if(a.time > b.time) return 1;
-      return a.created - b.created;
+      return (a.created || 0) - (b.created || 0);
     });
 
     list.innerHTML = '';
+
     if(items.length === 0){
       var empty = document.createElement('div');
       empty.className = 'empty';
-      empty.textContent = 'No entries yet.';
+      empty.textContent = selectedDate === todayKey()
+        ? 'No entries yet.'
+        : 'No entries for this day.';
       list.appendChild(empty);
-    }else{
+    } else {
       items.forEach(function(item){
         var row = document.createElement('div');
         row.className = 'item';
@@ -161,6 +232,7 @@ input:focus{border-color:#aaa}
         del.className = 'del';
         del.textContent = '×';
         del.setAttribute('aria-label','Delete');
+
         del.addEventListener('click', function(){
           var next = getItems().filter(function(x){ return x.id !== item.id; });
           setItems(next);
@@ -185,12 +257,14 @@ input:focus{border-color:#aaa}
     }
 
     var items = getItems();
+
     items.push({
       id: makeId(),
       text: text,
       time: activityTime.value || currentTime(),
       created: Date.now()
     });
+
     setItems(items);
 
     activity.value = '';
@@ -200,21 +274,45 @@ input:focus{border-color:#aaa}
   }
 
   addBtn.addEventListener('click', addItem);
+
   activity.addEventListener('keydown', function(e){
-    if(e.key === 'Enter' || e.keyCode === 13) addItem();
+    if(e.key === 'Enter' || e.keyCode === 13){
+      addItem();
+    }
   });
+
+  datePicker.addEventListener('change', function(){
+    if(datePicker.value){
+      setSelectedDate(datePicker.value);
+    }
+  });
+
+  prevDay.addEventListener('click', function(){
+    shiftDate(-1);
+  });
+
+  nextDay.addEventListener('click', function(){
+    shiftDate(1);
+  });
+
+  todayBtn.addEventListener('click', function(){
+    setSelectedDate(todayKey());
+  });
+
   clearBtn.addEventListener('click', function(){
     if(getItems().length === 0) return;
-    if(window.confirm('Clear all entries for today?')){
+
+    if(window.confirm('Clear all entries for ' + selectedDate + '?')){
       setItems([]);
       render();
     }
   });
 
-  var d = new Date();
-  dateEl.textContent = (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+  var now = new Date();
+  todayDisplay.textContent = (now.getMonth()+1) + '/' + now.getDate() + '/' + now.getFullYear();
   activityTime.value = currentTime();
-  render();
+
+  setSelectedDate(todayKey());
 })();
 </script>
 </body>
