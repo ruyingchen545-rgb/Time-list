@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Time List</title>
+<style>
+:root{--bg:#fff;--fg:#111;--muted:#8b8b8b;--line:#e8e8e8;--soft:#f6f6f6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Arial,sans-serif}
+main{max-width:720px;margin:auto;padding:28px 18px 100px}
+.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:30px}
+.kicker{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+h1{font-size:34px;letter-spacing:-1px;margin:0}
+.date{font-size:13px;color:var(--muted)}
+.form{display:grid;grid-template-columns:1fr 120px 76px;gap:9px;margin-bottom:30px}
+input,button{font:inherit}
+input{height:49px;border:1px solid var(--line);border-radius:12px;padding:0 13px;background:#fff;color:#111;outline:none}
+input:focus{border-color:#aaa}
+#add{height:49px;border:0;border-radius:12px;background:#111;color:#fff;font-weight:650}
+#add:active{transform:scale(.98)}
+.label{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:11px}
+#list{border-top:1px solid var(--line)}
+.item{display:grid;grid-template-columns:66px 1fr 38px;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}
+.item-time{font-size:14px;color:#444;font-variant-numeric:tabular-nums}
+.item-text{font-size:18px;word-break:break-word}
+.del{width:34px;height:34px;border:0;border-radius:10px;background:transparent;font-size:22px;color:#999}
+.empty{text-align:center;padding:45px 0;color:#aaa;font-size:14px}
+.bottom{display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:#999;font-size:12px}
+#clear{border:0;background:transparent;color:#777;padding:8px 0}
+.notice{display:none;margin:-14px 0 22px;font-size:12px;color:#777}
+@media(max-width:560px){
+ main{padding:22px 16px 90px}
+ h1{font-size:31px}
+ .form{grid-template-columns:1fr 110px}
+ #add{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <div class="kicker">Daily Log</div>
+      <h1>Time List</h1>
+    </div>
+    <div class="date" id="date"></div>
+  </div>
+
+  <div class="form">
+    <input id="activity" type="text" placeholder="What did you do?" autocomplete="off">
+    <input id="activityTime" type="time">
+    <button id="add" type="button">Add</button>
+  </div>
+
+  <div id="notice" class="notice"></div>
+  <div class="label">Today</div>
+  <div id="list"></div>
+
+  <div class="bottom">
+    <span id="count">0 items</span>
+    <button id="clear" type="button">Clear today</button>
+  </div>
+</main>
+
+<script>
+(function () {
+  var activity = document.getElementById('activity');
+  var activityTime = document.getElementById('activityTime');
+  var addBtn = document.getElementById('add');
+  var list = document.getElementById('list');
+  var count = document.getElementById('count');
+  var clearBtn = document.getElementById('clear');
+  var dateEl = document.getElementById('date');
+  var notice = document.getElementById('notice');
+  var STORAGE_KEY = 'timelist-simple-v2';
+  var memoryData = {};
+  var storageOK = true;
+
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+  function dayKey(){
+    var d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+  function currentTime(){
+    var d = new Date();
+    return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function makeId(){
+    return String(Date.now()) + '-' + String(Math.floor(Math.random()*1000000));
+  }
+
+  function loadAll(){
+    if(!storageOK) return memoryData;
+    try{
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){
+      storageOK = false;
+      notice.style.display = 'block';
+      notice.textContent = 'This preview cannot save permanently, but adding entries still works.';
+      return memoryData;
+    }
+  }
+
+  function saveAll(data){
+    if(!storageOK){
+      memoryData = data;
+      return;
+    }
+    try{
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }catch(e){
+      storageOK = false;
+      memoryData = data;
+      notice.style.display = 'block';
+      notice.textContent = 'This preview cannot save permanently, but adding entries still works.';
+    }
+  }
+
+  function getItems(){
+    var all = loadAll();
+    return all[dayKey()] || [];
+  }
+
+  function setItems(items){
+    var all = loadAll();
+    all[dayKey()] = items;
+    saveAll(all);
+  }
+
+  function render(){
+    var items = getItems().slice();
+    items.sort(function(a,b){
+      if(a.time < b.time) return -1;
+      if(a.time > b.time) return 1;
+      return a.created - b.created;
+    });
+
+    list.innerHTML = '';
+    if(items.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'No entries yet.';
+      list.appendChild(empty);
+    }else{
+      items.forEach(function(item){
+        var row = document.createElement('div');
+        row.className = 'item';
+
+        var t = document.createElement('div');
+        t.className = 'item-time';
+        t.textContent = item.time;
+
+        var tx = document.createElement('div');
+        tx.className = 'item-text';
+        tx.textContent = item.text;
+
+        var del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'del';
+        del.textContent = '×';
+        del.setAttribute('aria-label','Delete');
+        del.addEventListener('click', function(){
+          var next = getItems().filter(function(x){ return x.id !== item.id; });
+          setItems(next);
+          render();
+        });
+
+        row.appendChild(t);
+        row.appendChild(tx);
+        row.appendChild(del);
+        list.appendChild(row);
+      });
+    }
+
+    count.textContent = items.length + (items.length === 1 ? ' item' : ' items');
+  }
+
+  function addItem(){
+    var text = activity.value.replace(/^\s+|\s+$/g,'');
+    if(!text){
+      activity.focus();
+      return;
+    }
+
+    var items = getItems();
+    items.push({
+      id: makeId(),
+      text: text,
+      time: activityTime.value || currentTime(),
+      created: Date.now()
+    });
+    setItems(items);
+
+    activity.value = '';
+    activityTime.value = currentTime();
+    render();
+    activity.focus();
+  }
+
+  addBtn.addEventListener('click', addItem);
+  activity.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' || e.keyCode === 13) addItem();
+  });
+  clearBtn.addEventListener('click', function(){
+    if(getItems().length === 0) return;
+    if(window.confirm('Clear all entries for today?')){
+      setItems([]);
+      render();
+    }
+  });
+
+  var d = new Date();
+  dateEl.textContent = (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+  activityTime.value = currentTime();
+  render();
+})();
+</script>
+</body>
+</html>
