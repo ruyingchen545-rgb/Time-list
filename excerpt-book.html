@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Excerpt Book</title>
+<style>
+:root{
+  --bg:#fff;--fg:#111;--muted:#888;--line:#e8e8e8;--soft:#f6f6f6;
+  --danger:#a33;--shadow:0 12px 35px rgba(0,0,0,.07)
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Arial,sans-serif}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:860px;margin:auto;padding:24px 16px 100px}
+.topbar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:22px}
+.kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+h1{margin:0;font-size:34px;letter-spacing:-1px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.icon{width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:21px}
+.primary{border:0;background:#111;color:#fff;border-radius:12px;padding:11px 14px;font-weight:650}
+.secondary{border:1px solid var(--line);background:#fff;color:#111;border-radius:12px;padding:10px 13px}
+.ghost{border:0;background:transparent;color:#666;padding:0}
+.search{width:100%;height:46px;border:1px solid var(--line);border-radius:13px;padding:0 13px;background:#fff;outline:none}
+.search:focus,input:focus,textarea:focus,select:focus{border-color:#aaa}
+.filters{display:flex;gap:8px;overflow:auto;padding:12px 0 4px}
+.pill{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;font-size:13px;color:#555}
+.pill.active{background:#111;color:#fff;border-color:#111}
+.section{display:flex;justify-content:space-between;align-items:center;margin:22px 0 12px}
+.section h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:0}
+.count{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+.card{border:1px solid var(--line);border-radius:17px;padding:16px;background:#fff}
+.card-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.card-title{font-size:18px;font-weight:700;line-height:1.35}
+.card-date{font-size:11px;color:var(--muted);white-space:nowrap;padding-top:3px}
+.card-text{font-family:Georgia,"Times New Roman","Songti SC","STSong",serif;font-size:17px;line-height:1.78;margin-top:12px;white-space:pre-wrap}
+.card-source{margin-top:12px;font-size:12px;color:#777}
+.card-image{width:100%;max-height:320px;object-fit:cover;border-radius:13px;border:1px solid var(--line);margin-top:12px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.tag{font-size:11px;color:#666;border:1px solid var(--line);border-radius:999px;padding:5px 8px}
+.card-actions{display:flex;gap:14px;margin-top:14px}
+.card-actions button{border:0;background:transparent;padding:0;font-size:13px;color:#666}
+.card-actions .danger{color:var(--danger)}
+.empty{text-align:center;color:#aaa;border:1px dashed var(--line);border-radius:16px;padding:50px 12px}
+.hidden{display:none!important}
+
+.menu{position:relative}
+.menu-panel{position:absolute;right:0;top:50px;min-width:180px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:6px;z-index:15}
+.menu-panel button{width:100%;border:0;background:#fff;border-radius:9px;padding:10px;text-align:left}
+.menu-panel button:active{background:var(--soft)}
+
+.modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.22);display:flex;align-items:flex-end;z-index:30}
+.modal{width:100%;max-height:93vh;overflow:auto;background:#fff;border-radius:22px 22px 0 0;padding:20px 16px calc(24px + env(safe-area-inset-bottom))}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal h3{margin:0;font-size:24px}
+.close{border:0;background:transparent;font-size:26px;color:#777}
+.type-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:17px}
+.type-btn{border:1px solid var(--line);background:#fff;border-radius:12px;height:44px}
+.type-btn.active{background:#111;color:#fff;border-color:#111}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:#666;margin-bottom:7px}
+input[type=text],input[type=date],textarea,select{width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;color:#111;outline:none}
+input[type=text],input[type=date],select{height:48px;padding:0 12px}
+textarea{min-height:140px;padding:12px;resize:vertical;line-height:1.6}
+.upload{border:1px dashed #ccc;border-radius:14px;padding:16px;background:var(--soft);text-align:center}
+.preview{width:100%;max-height:300px;object-fit:contain;border:1px solid var(--line);border-radius:13px;margin-top:10px;background:#fff}
+.ocr-box{border:1px solid var(--line);border-radius:14px;padding:13px;background:var(--soft);margin-top:10px}
+.ocr-title{font-size:13px;font-weight:700}
+.ocr-status{font-size:12px;color:#777;line-height:1.5;margin-top:5px}
+.ocr-progress{height:4px;background:#ddd;border-radius:999px;margin-top:10px;overflow:hidden}
+.ocr-progress span{display:block;height:100%;background:#111;width:0%}
+.actions{display:flex;gap:9px;margin-top:18px}
+.actions button{flex:1}
+.note{font-size:12px;color:#999;line-height:1.5;margin-top:7px}
+.viewer{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:60;display:flex;align-items:center;justify-content:center;padding:18px}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain}
+.viewer button{position:absolute;right:18px;top:18px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:24px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#111;color:#fff;border-radius:999px;padding:10px 14px;font-size:13px;z-index:70}
+@media(min-width:720px){
+  .grid{grid-template-columns:1fr 1fr}
+  .modal-wrap{align-items:center;justify-content:center;padding:20px}
+  .modal{max-width:740px;border-radius:22px;max-height:90vh}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <div class="kicker">Personal Collection</div>
+      <h1>Excerpt Book</h1>
+    </div>
+    <div class="row">
+      <button id="addBtn" class="icon" aria-label="Add">＋</button>
+      <div class="menu">
+        <button id="menuBtn" class="icon">⋯</button>
+        <div id="menuPanel" class="menu-panel hidden">
+          <button id="exportBtn">Export backup</button>
+          <button id="importBtn">Import backup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input id="searchInput" class="search" placeholder="Search text, title, source or tags">
+
+  <div class="filters">
+    <button class="pill active" data-filter="all">All</button>
+    <button class="pill" data-filter="text">Text</button>
+    <button class="pill" data-filter="image">Image</button>
+    <button class="pill" data-filter="favorite">Favorites</button>
+  </div>
+
+  <div class="section">
+    <h2>Collection</h2>
+    <div id="count" class="count">0 excerpts</div>
+  </div>
+
+  <div id="grid" class="grid"></div>
+</div>
+
+<input id="importFile" type="file" accept="application/json" class="hidden">
+
+<div id="editorWrap" class="modal-wrap hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="editorTitle">New Excerpt</h3>
+      <button class="close" data-close="editorWrap">×</button>
+    </div>
+
+    <div class="type-switch">
+      <button id="textTypeBtn" class="type-btn active">Text</button>
+      <button id="imageTypeBtn" class="type-btn">Image / Photo</button>
+    </div>
+
+    <div class="field">
+      <label>Title</label>
+      <input id="titleInput" type="text" placeholder="Optional title">
+    </div>
+
+    <div class="field">
+      <label>Date</label>
+      <input id="dateInput" type="date">
+    </div>
+
+    <div id="imageArea" class="hidden">
+      <div class="field">
+        <label>Original Image</label>
+        <div class="upload">
+          <input id="imageInput" type="file" accept="image/*">
+          <div class="note">拍照或从相册选择。原图会和摘抄一起保存。</div>
+        </div>
+        <img id="imagePreview" class="preview hidden">
+      </div>
+
+      <div class="ocr-box">
+        <div class="ocr-title">Extract Text from Image</div>
+        <div id="ocrStatus" class="ocr-status">上传图片后，可以把图片里的文字识别到正文中。</div>
+        <div class="ocr-progress"><span id="ocrBar"></span></div>
+        <button id="ocrBtn" class="secondary" style="width:100%;margin-top:10px" type="button">Extract Text</button>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:14px">
+      <label>Text</label>
+      <textarea id="textInput" placeholder="粘贴或输入你想收录的文字；图片识别后的文字也会出现在这里。"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Source</label>
+      <input id="sourceInput" type="text" placeholder="Book / Film / Article / Person...">
+    </div>
+
+    <div class="field">
+      <label>Tags</label>
+      <input id="tagsInput" type="text" placeholder="life, writing, love, philosophy">
+      <div class="note">多个标签用逗号分开。</div>
+    </div>
+
+    <div class="field">
+      <label>Note / Why I saved this</label>
+      <textarea id="noteInput" style="min-height:90px" placeholder="可选：为什么想保存这段话？"></textarea>
+    </div>
+
+    <div class="actions">
+      <button class="secondary" data-close="editorWrap">Cancel</button>
+      <button id="saveBtn" class="primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="viewer" class="viewer hidden">
+  <button id="viewerClose">×</button>
+  <img id="viewerImg">
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+(function(){
+  const DB_NAME='excerpt-book-db',DB_VERSION=1,STORE='excerpts';
+  let db,currentFilter='all',editingId=null,currentType='text',currentImage='';
+  const $=id=>document.getElementById(id);
+
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+  function pad(n){return n<10?'0'+n:''+n}
+  function today(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+  function show(id){$(id).classList.remove('hidden')}
+  function hide(id){$(id).classList.add('hidden')}
+  function toast(msg){$('toast').textContent=msg;show('toast');setTimeout(()=>hide('toast'),1700)}
+
+  function openDB(){return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NAME,DB_VERSION);
+    r.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'});
+    };
+    r.onsuccess=()=>{db=r.result;res()};
+    r.onerror=()=>rej(r.error);
+  })}
+  function os(mode='readonly'){return db.transaction(STORE,mode).objectStore(STORE)}
+  function put(v){return new Promise((res,rej)=>{const r=os('readwrite').put(v);r.onsuccess=()=>res(v);r.onerror=()=>rej(r.error)})}
+  function get(id){return new Promise((res,rej)=>{const r=os().get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+  function getAll(){return new Promise((res,rej)=>{const r=os().getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)})}
+  function del(id){return new Promise((res,rej)=>{const r=os('readwrite').delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+
+  async function render(){
+    const q=$('searchInput').value.trim().toLowerCase();
+    let items=(await getAll()).sort((a,b)=>b.date.localeCompare(a.date)||(b.created||0)-(a.created||0));
+    items=items.filter(x=>{
+      const matchesSearch=[x.title,x.text,x.source,x.tags,x.note].join(' ').toLowerCase().includes(q);
+      const matchesFilter=currentFilter==='all' ||
+        (currentFilter==='favorite' && x.favorite) ||
+        (currentFilter==='text' && x.type==='text') ||
+        (currentFilter==='image' && x.type==='image');
+      return matchesSearch&&matchesFilter;
+    });
+
+    $('count').textContent=items.length+' excerpt'+(items.length===1?'':'s');
+    const grid=$('grid');grid.innerHTML='';
+    if(!items.length){
+      grid.innerHTML='<div class="empty">No excerpts here yet.<br>Tap ＋ to save one.</div>';
+      return;
+    }
+
+    items.forEach(x=>{
+      const card=document.createElement('article');card.className='card';
+      const tags=(x.tags||'').trim()
+        ?'<div class="tags">'+x.tags.split(',').map(t=>t.trim()).filter(Boolean).map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</div>'
+        :'';
+      const img=x.image?'<img class="card-image" src="'+x.image+'">':'';
+      const source=x.source?'<div class="card-source">— '+esc(x.source)+'</div>':'';
+      const note=x.note?'<div class="card-source">Note: '+esc(x.note)+'</div>':'';
+
+      card.innerHTML=
+        '<div class="card-top"><div class="card-title">'+esc(x.title||'Untitled')+'</div><div class="card-date">'+esc(x.date)+'</div></div>'+
+        img+
+        (x.text?'<div class="card-text">'+esc(x.text)+'</div>':'')+
+        source+note+tags+
+        '<div class="card-actions">'+
+          '<button class="fav">'+(x.favorite?'★ Favorite':'☆ Favorite')+'</button>'+
+          '<button class="edit">Edit</button>'+
+          '<button class="danger delete">Delete</button>'+
+        '</div>';
+
+      if(x.image){
+        card.querySelector('.card-image').onclick=()=>{$('viewerImg').src=x.image;show('viewer')};
+      }
+      card.querySelector('.fav').onclick=async()=>{x.favorite=!x.favorite;await put(x);render()};
+      card.querySelector('.edit').onclick=()=>openEdit(x.id);
+      card.querySelector('.delete').onclick=async()=>{
+        if(confirm('Delete this excerpt?')){await del(x.id);render();toast('Deleted')}
+      };
+      grid.appendChild(card);
+    });
+  }
+
+  function setType(type){
+    currentType=type;
+    $('textTypeBtn').classList.toggle('active',type==='text');
+    $('imageTypeBtn').classList.toggle('active',type==='image');
+    $('imageArea').classList.toggle('hidden',type!=='image');
+  }
+
+  function resetEditor(){
+    editingId=null;currentImage='';setType('text');
+    $('editorTitle').textContent='New Excerpt';
+    $('titleInput').value='';
+    $('dateInput').value=today();
+    $('textInput').value='';
+    $('sourceInput').value='';
+    $('tagsInput').value='';
+    $('noteInput').value='';
+    $('imageInput').value='';
+    $('imagePreview').src='';
+    $('imagePreview').classList.add('hidden');
+    $('ocrStatus').textContent='上传图片后，可以把图片里的文字识别到正文中。';
+    $('ocrBar').style.width='0%';
+  }
+
+  function openNew(){resetEditor();show('editorWrap')}
+
+  async function openEdit(id){
+    const x=await get(id);if(!x)return;
+    editingId=id;currentImage=x.image||'';setType(x.type||'text');
+    $('editorTitle').textContent='Edit Excerpt';
+    $('titleInput').value=x.title||'';
+    $('dateInput').value=x.date||today();
+    $('textInput').value=x.text||'';
+    $('sourceInput').value=x.source||'';
+    $('tagsInput').value=x.tags||'';
+    $('noteInput').value=x.note||'';
+    if(currentImage){$('imagePreview').src=currentImage;$('imagePreview').classList.remove('hidden')}
+    else{$('imagePreview').classList.add('hidden')}
+    show('editorWrap');
+  }
+
+  function fileToDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
+
+  async function compress(file){
+    const src=await fileToDataURL(file);
+    return new Promise(res=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height,max=1800;
+        if(w>max||h>max){const s=Math.min(max/w,max/h);w=Math.round(w*s);h=Math.round(h*s)}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        res(c.toDataURL('image/jpeg',0.82));
+      };
+      img.src=src;
+    });
+  }
+
+  async function handleImage(file){
+    if(!file)return;
+    currentImage=await compress(file);
+    $('imagePreview').src=currentImage;
+    $('imagePreview').classList.remove('hidden');
+    $('ocrStatus').textContent='图片已准备好，可以开始识别文字。';
+  }
+
+  let tesseractLoaded=false;
+  function loadTesseract(){
+    return new Promise((res,rej)=>{
+      if(window.Tesseract){tesseractLoaded=true;return res()}
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload=()=>{tesseractLoaded=true;res()};
+      s.onerror=()=>rej(new Error('Could not load OCR'));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function runOCR(){
+    if(!currentImage){alert('Please upload an image first.');return}
+    const btn=$('ocrBtn');btn.disabled=true;btn.textContent='Recognizing...';
+    $('ocrStatus').textContent='正在加载 OCR 并识别图片文字…';
+    try{
+      await loadTesseract();
+      const result=await Tesseract.recognize(currentImage,'chi_sim+eng',{
+        logger:m=>{
+          if(m.status){
+            $('ocrStatus').textContent=m.status;
+            if(typeof m.progress==='number')$('ocrBar').style.width=Math.round(m.progress*100)+'%';
+          }
+        }
+      });
+      const text=(result.data.text||'').trim();
+      if(text){
+        $('textInput').value=text;
+        $('ocrStatus').textContent='识别完成。你可以在正文框里继续校对和整理。';
+        $('ocrBar').style.width='100%';
+        toast('Text extracted');
+      }else{
+        $('ocrStatus').textContent='没有识别到清晰文字，可以尝试换一张更清楚的图片。';
+      }
+    }catch(e){
+      $('ocrStatus').textContent='OCR 加载或识别失败。请确认网页联网后再试。';
+      alert('OCR failed. The rest of the app can still be used normally.');
+    }finally{
+      btn.disabled=false;btn.textContent='Extract Text';
+    }
+  }
+
+  async function save(){
+    const text=$('textInput').value.trim();
+    if(!text&&!currentImage){alert('Please add text or an image.');return}
+    const old=editingId?await get(editingId):null;
+    const item={
+      id:editingId||uid(),
+      type:currentType,
+      title:$('titleInput').value.trim(),
+      date:$('dateInput').value||today(),
+      text,
+      image:currentType==='image'?currentImage:'',
+      source:$('sourceInput').value.trim(),
+      tags:$('tagsInput').value.trim(),
+      note:$('noteInput').value.trim(),
+      favorite:old?.favorite||false,
+      created:old?.created||Date.now(),
+      updated:Date.now()
+    };
+    await put(item);hide('editorWrap');render();toast(editingId?'Updated':'Saved');
+  }
+
+  async function exportBackup(){
+    const data={app:'Excerpt Book',version:1,exportedAt:new Date().toISOString(),items:await getAll()};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='excerpt-book-backup-'+today()+'.json';
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
+    hide('menuPanel');toast('Backup exported');
+  }
+
+  async function importBackup(file){
+    try{
+      const data=JSON.parse(await file.text());
+      if(!Array.isArray(data.items))throw new Error();
+      if(!confirm('Import this backup?'))return;
+      for(const x of data.items)await put(x);
+      render();toast('Backup imported');
+    }catch(e){alert('Invalid backup file.')}
+  }
+
+  $('addBtn').onclick=openNew;
+  $('textTypeBtn').onclick=()=>setType('text');
+  $('imageTypeBtn').onclick=()=>setType('image');
+  $('imageInput').onchange=e=>handleImage(e.target.files[0]);
+  $('ocrBtn').onclick=runOCR;
+  $('saveBtn').onclick=save;
+  $('searchInput').oninput=render;
+
+  document.querySelectorAll('.pill').forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');currentFilter=b.dataset.filter;render();
+    };
+  });
+
+  $('menuBtn').onclick=()=>$('menuPanel').classList.toggle('hidden');
+  $('exportBtn').onclick=exportBackup;
+  $('importBtn').onclick=()=>{$('importFile').click();hide('menuPanel')};
+  $('importFile').onchange=e=>{if(e.target.files[0])importBackup(e.target.files[0])};
+  $('viewerClose').onclick=()=>hide('viewer');
+  $('viewer').onclick=e=>{if(e.target===$('viewer'))hide('viewer')};
+  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>hide(b.dataset.close));
+  document.querySelectorAll('.modal-wrap').forEach(w=>w.addEventListener('click',e=>{if(e.target===w)hide(w.id)}));
+
+  openDB().then(render).catch(()=>alert('Please open this site in Safari after publishing with GitHub Pages.'));
+})();
+</script>
+</body>
+</html>
